@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>都市計畫每日彙整</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --card: #ffffff; --text: #1f2328; --muted: #6a6f76; --line: #e3e1da;
+    --accent: #1f6f5c; --accent-soft: #e2f0eb; --new: #b4471f; --new-soft: #fbe9e1;
+    --chip: #eeece6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #16181b; --card: #1e2125; --text: #e8e6e1; --muted: #9a9ea5; --line: #30343a;
+      --accent: #5cc0a3; --accent-soft: #1c3530; --new: #f08a62; --new-soft: #3a2219; --chip: #2a2e33;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #16181b; --card: #1e2125; --text: #e8e6e1; --muted: #9a9ea5; --line: #30343a;
+    --accent: #5cc0a3; --accent-soft: #1c3530; --new: #f08a62; --new-soft: #3a2219; --chip: #2a2e33;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.6 "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 24px 16px 64px; }
+  header h1 { font-size: 24px; margin: 0 0 4px; letter-spacing: .02em; }
+  header .meta { color: var(--muted); font-size: 13px; }
+  .stats { display: flex; gap: 12px; margin: 18px 0; flex-wrap: wrap; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; min-width: 110px; }
+  .stat b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+  .stat span { color: var(--muted); font-size: 12px; }
+  .filters { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px;
+    position: sticky; top: 8px; z-index: 2; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 4px 0; }
+  .row label { color: var(--muted); font-size: 12px; width: 36px; flex: none; }
+  .chip { border: 1px solid transparent; background: var(--chip); color: var(--text); border-radius: 999px;
+    padding: 3px 11px; font: inherit; font-size: 13px; cursor: pointer; }
+  .chip[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  input[type=search] { flex: 1; min-width: 0; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--text); font: inherit; }
+  h2.day { font-size: 13px; color: var(--muted); font-weight: 600; margin: 26px 0 8px; letter-spacing: .05em; }
+  ul { list-style: none; padding: 0; margin: 0; }
+  li.item { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 11px 14px; margin-bottom: 8px; }
+  li.item a { color: var(--text); text-decoration: none; font-weight: 500; }
+  li.item a:hover { color: var(--accent); text-decoration: underline; }
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; font-size: 12px; color: var(--muted); align-items: center; }
+  .tag { background: var(--chip); border-radius: 4px; padding: 0 6px; }
+  .tag.kind-公告 { background: var(--accent-soft); color: var(--accent); }
+  .tag.new { background: var(--new-soft); color: var(--new); font-weight: 600; }
+  .empty { color: var(--muted); text-align: center; padding: 40px 0; }
+  details.err { margin-top: 28px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>都市計畫每日彙整</h1>
+    <div class="meta">臺北市・新北市・臺中市・苗栗縣｜都市計畫・都市更新・國土計畫｜更新於 <span id="updated"></span></div>
+  </header>
+  <div class="stats" id="stats"></div>
+  <div class="filters">
+    <div class="row"><label>縣市</label><span id="f-city" class="row"></span></div>
+    <div class="row"><label>主題</label><span id="f-topic" class="row"></span></div>
+    <div class="row"><label>類型</label><span id="f-kind" class="row"></span>
+      <button class="chip" id="f-new" aria-pressed="false">只看今日新增</button></div>
+    <div class="row"><label>搜尋</label><input type="search" id="q" placeholder="關鍵字，例如：板橋、捷運、通盤檢討"></div>
+  </div>
+  <div id="list"></div>
+  <details class="err" id="errors" hidden><summary>部分來源抓取失敗</summary><ul id="errlist"></ul></details>
+</div>
+<script>
+const DATA = /*__DATA__*/null;
+const state = { city: "全部", topic: "全部", kind: "全部", onlyNew: false, q: "" };
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function chips(el, key, values) {
+  el.innerHTML = "";
+  for (const v of ["全部", ...values]) {
+    const b = document.createElement("button");
+    b.className = "chip"; b.textContent = v;
+    b.setAttribute("aria-pressed", state[key] === v);
+    b.onclick = () => { state[key] = v; chips(el, key, values); draw(); };
+    el.appendChild(b);
+  }
+}
+
+function draw() {
+  const q = state.q.trim();
+  const rows = DATA.items.filter(it =>
+    (state.city === "全部" || it.city === state.city) &&
+    (state.topic === "全部" || it.topics.includes(state.topic)) &&
+    (state.kind === "全部" || it.kind === state.kind) &&
+    (!state.onlyNew || it.first_seen === DATA.today) &&
+    (!q || it.title.includes(q) || it.source.includes(q)));
+  const groups = {};
+  for (const it of rows) (groups[it.first_seen] ||= []).push(it);
+  const list = $("list");
+  if (!rows.length) { list.innerHTML = '<p class="empty">沒有符合條件的項目</p>'; return; }
+  list.innerHTML = Object.keys(groups).sort().reverse().map(day =>
+    `<h2 class="day">${day === DATA.today ? "今天" : day} 蒐集・${groups[day].length} 則</h2><ul>` +
+    groups[day].map(it => `<li class="item">
+      <a href="${esc(it.link)}" target="_blank" rel="noopener">${esc(it.title)}</a>
+      <div class="tags">
+        ${it.first_seen === DATA.today ? '<span class="tag new">新</span>' : ""}
+        <span class="tag kind-${esc(it.kind)}">${esc(it.kind)}</span>
+        <span class="tag">${esc(it.city)}</span>
+        ${it.topics.map(t => `<span class="tag">${esc(t)}</span>`).join("")}
+        <span>${esc(it.source)}${it.date ? "・" + esc(it.date) : ""}</span>
+      </div></li>`).join("") + "</ul>").join("");
+}
+
+$("updated").textContent = DATA.updated;
+const count = (f) => DATA.items.filter(f).length;
+$("stats").innerHTML = [
+  ["今日新增", count(it => it.first_seen === DATA.today)],
+  ["市府公告", count(it => it.kind === "公告")],
+  ["新聞", count(it => it.kind === "新聞")],
+  ["保留總數", DATA.items.length],
+].map(([k, v]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join("");
+chips($("f-city"), "city", DATA.cities);
+chips($("f-topic"), "topic", [...DATA.topics, "其他"]);
+chips($("f-kind"), "kind", ["公告", "新聞"]);
+$("f-new").onclick = (e) => { state.onlyNew = !state.onlyNew; e.target.setAttribute("aria-pressed", state.onlyNew); draw(); };
+$("q").oninput = (e) => { state.q = e.target.value; draw(); };
+if (DATA.errors.length) {
+  $("errors").hidden = false;
+  $("errlist").innerHTML = DATA.errors.map(e => `<li>${esc(e)}</li>`).join("");
+}
+draw();
+</script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+{
+  "keep_days": 30,
+  "topics": {
+    "都市更新": ["都市更新", "都更", "危老", "危險及老舊", "權利變換", "更新事業", "更新會", "老宅延壽", "整建維護"],
+    "都市計畫": ["都市計畫", "細部計畫", "主要計畫", "通盤檢討", "土地使用分區", "公開展覽", "容積", "區段徵收", "市地重劃", "都委會", "都市設計審議"],
+    "國土計畫": ["國土計畫", "國土功能分區", "國土管理", "國土利用", "非都市土地"]
+  },
+  "cities": {
+    "臺北市": ["臺北", "台北", "北市"],
+    "新北市": ["新北"],
+    "臺中市": ["臺中", "台中", "中市"],
+    "苗栗縣": ["苗栗"]
+  },
+  "sources": [
+    {"name": "臺北市政府 電子公告欄", "type": "rss", "city": "臺北市", "kind": "公告",
+     "url": "https://www.gov.taipei/OpenData.aspx?SN=9BB844180349DC88", "filter": true},
+    {"name": "臺北市都市更新處 最新消息", "type": "ccms", "city": "臺北市", "kind": "公告",
+     "url": "https://uro.gov.taipei/News.aspx?n=3ADF6474408DA0C5&sms=78D644F2755ACCAA", "filter": false},
+    {"name": "臺北市都市更新處 其他公告", "type": "ccms", "city": "臺北市", "kind": "公告",
+     "url": "https://uro.gov.taipei/News.aspx?n=08F07BB7BD5F7E5A&sms=2C1B08E71B9873D0", "filter": false},
+    {"name": "新北市政府 (Google 新聞索引)", "type": "gnews", "city": "新北市", "kind": "公告",
+     "query": "site:ntpc.gov.tw (都市計畫 OR 都市更新 OR 都更 OR 國土計畫 OR 危老) when:7d", "filter": true},
+    {"name": "臺中市都市發展局 都發公告", "type": "taichung", "city": "臺中市", "kind": "公告",
+     "url": "https://www.ud.taichung.gov.tw/28937/Lpsimplelist", "filter": false},
+    {"name": "苗栗縣政府 最新公告", "type": "ccms", "city": "苗栗縣", "kind": "公告",
+     "url": "https://www.miaoli.gov.tw/News.aspx?n=287&sms=9464", "filter": true},
+    {"name": "苗栗縣都市計畫資訊網 公告訊息", "type": "miaoli", "city": "苗栗縣", "kind": "公告",
+     "url": "https://urbanplan.miaoli.gov.tw/News/News", "filter": false},
+    {"name": "內政部國土管理署 (Google 新聞索引)", "type": "gnews", "city": "全國", "kind": "公告",
+     "query": "site:nlma.gov.tw (國土計畫 OR 都市計畫 OR 都市更新) when:14d", "filter": true},
+
+    {"name": "Google 新聞", "type": "gnews", "city": "臺北市", "kind": "新聞",
+     "query": "(都市計畫 OR 都市更新 OR 都更 OR 危老 OR 國土計畫) (臺北市 OR 台北市) when:2d", "filter": true},
+    {"name": "Google 新聞", "type": "gnews", "city": "新北市", "kind": "新聞",
+     "query": "(都市計畫 OR 都市更新 OR 都更 OR 危老 OR 國土計畫) 新北 when:2d", "filter": true},
+    {"name": "Google 新聞", "type": "gnews", "city": "臺中市", "kind": "新聞",
+     "query": "(都市計畫 OR 都市更新 OR 都更 OR 危老 OR 國土計畫) (臺中 OR 台中) when:2d", "filter": true},
+    {"name": "Google 新聞", "type": "gnews", "city": "苗栗縣", "kind": "新聞",
+     "query": "(都市計畫 OR 都市更新 OR 都更 OR 危老 OR 國土計畫) 苗栗 when:7d", "filter": true},
+    {"name": "Google 新聞", "type": "gnews", "city": "全國", "kind": "新聞",
+     "query": "國土計畫 when:3d", "filter": true}
+  ]
+}

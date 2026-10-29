@@ -1,0 +1,26 @@
+name: 每日蒐集
+
+on:
+  schedule:
+    - cron: "0 22 * * *"   # UTC 22:00 = 臺灣時間每天早上 6:00
+  workflow_dispatch:        # 也可以在 Actions 頁面手動執行
+
+permissions:
+  contents: write
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python collect.py
+      - name: 提交更新結果
+        run: |
+          git config user.name "digest-bot"
+          git config user.email "digest-bot@users.noreply.github.com"
+          git add data docs
+          git diff --cached --quiet || git commit -m "每日更新 $(TZ=Asia/Taipei date +%F)"
+          git push
