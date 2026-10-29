@@ -16,7 +16,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - run: pip install anthropic
       - run: python collect.py
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}   # 未設定時略過「每日重點」摘要
       - name: 提交更新結果
         run: |
           git config user.name "digest-bot"

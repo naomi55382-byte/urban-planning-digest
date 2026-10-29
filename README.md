@@ -9,7 +9,9 @@
 | `config.json` | 來源網址、關鍵字、主題分類（新增來源或關鍵字只要改這裡） |
 | `collect.py` | 抓取、篩選、去重，產生 `docs/index.html`（只用 Python 標準函式庫） |
 | `template.html` | 網頁版型 |
+| `summarize.py` | 用 Claude 把當日新增項目整理成「今日重點」（選用） |
 | `data/items.json` | 歷史資料（保留 30 天，用來標記「今日新增」） |
+| `data/summary.json` | 最近一次的「今日重點」 |
 | `.github/workflows/daily.yml` | GitHub Actions 每天早上 6 點自動執行 |
 
 ## 本機執行
@@ -41,8 +43,17 @@ python collect.py
 > 注意：GitHub Actions 的主機在國外。如果有政府網站封鎖國外 IP，該來源會顯示在網頁底部的「部分來源抓取失敗」。
 > 遇到這種情況，可以改用 Windows「工作排程器」每天在自己的電腦上執行 `python collect.py`。
 
+## 今日重點（Claude 摘要）
+
+網頁最上方的「今日重點」由 Claude（`claude-opus-5-5`）依當日新增項目的標題整理：整體概況、5～8 則重點，以及公開展覽、說明會等期限。
+
+啟用方式：到 https://platform.claude.com 申請 API key，再到 repository 的
+Settings → Secrets and variables → Actions → New repository secret，
+名稱填 `ANTHROPIC_API_KEY`，值貼上 key。沒有設定時會略過摘要，其餘功能照常運作。
+
+費用約每天 US$0.05～0.15（依當日新增則數而定），可在 Claude Console 設定每月花費上限。
+
 ## 擴充方向
 
 - 加入更多局處（例如新北市都市更新處、臺中市都市更新相關頁面）：在 `config.json` 加一筆 source
-- 每天把「今日新增」寄到 Email 或推播到 LINE、Telegram
-- 用 Claude API 為當日新增項目產生重點摘要
+- 每天把「今日重點」寄到 Email 或推播到 LINE、Telegram

@@ -50,6 +50,20 @@
   .tag.new { background: var(--new-soft); color: var(--new); font-weight: 600; }
   .empty { color: var(--muted); text-align: center; padding: 40px 0; }
   details.err { margin-top: 28px; color: var(--muted); font-size: 13px; }
+  .brief { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--accent);
+    border-radius: 12px; padding: 16px 18px; margin: 18px 0; }
+  .brief h2 { font-size: 17px; margin: 0 0 6px; }
+  .brief h3 { font-size: 13px; color: var(--muted); margin: 18px 0 8px; letter-spacing: .05em; }
+  .brief .overview { margin: 0; }
+  .brief ol { margin: 0; padding-left: 22px; }
+  .brief ol li { margin-bottom: 10px; }
+  .brief ol li b { margin-right: 6px; }
+  .brief .detail { color: var(--text); }
+  .brief .refs { font-size: 12px; color: var(--muted); }
+  .brief .refs a { color: var(--accent); margin-right: 8px; }
+  .deadline { display: grid; grid-template-columns: 64px 1fr; gap: 2px 10px; padding: 8px 0; border-top: 1px solid var(--line); }
+  .deadline .when { grid-column: 2; color: var(--new); font-size: 13px; font-weight: 600; }
+  .brief .note { font-size: 12px; color: var(--muted); margin-top: 12px; }
 </style>
 </head>
 <body>
@@ -58,6 +72,7 @@
     <h1>都市計畫每日彙整</h1>
     <div class="meta">臺北市・新北市・臺中市・苗栗縣｜都市計畫・都市更新・國土計畫｜更新於 <span id="updated"></span></div>
   </header>
+  <section class="brief" id="brief" hidden></section>
   <div class="stats" id="stats"></div>
   <div class="filters">
     <div class="row"><label>縣市</label><span id="f-city" class="row"></span></div>
@@ -111,6 +126,25 @@ function draw() {
       </div></li>`).join("") + "</ul>").join("");
 }
 
+function brief(s) {
+  if (!s) return;
+  const refs = (rs) => rs.length ? `<div class="refs">來源：${rs.map((r, i) =>
+    `<a href="${esc(r.link)}" target="_blank" rel="noopener" title="${esc(r.title)}">[${i + 1}]</a>`).join("")}</div>` : "";
+  const label = s.date === DATA.today ? "今日重點" : `${s.date} 的重點（今日尚無新增）`;
+  $("brief").innerHTML = `
+    <h2>${label}</h2>
+    <p class="overview">${esc(s.overview)}</p>
+    <h3>重點 ${s.highlights.length} 則</h3>
+    <ol>${s.highlights.map(h => `<li><b>${esc(h.title)}</b><span class="tag">${esc(h.city)}</span>
+      <div class="detail">${esc(h.detail)}</div>${refs(h.refs)}</li>`).join("")}</ol>
+    ${s.deadlines.length ? `<h3>期限與可參與事項</h3>${s.deadlines.map(d => `<div class="deadline">
+      <span class="tag">${esc(d.city)}</span><span>${esc(d.what)}</span>
+      <span class="when">${esc(d.when)}</span>${refs(d.refs) ? `<span style="grid-column:2">${refs(d.refs)}</span>` : ""}</div>`).join("")}` : ""}
+    <p class="note">由 Claude 依 ${s.count} 則新增項目的標題整理，細節請以原始公告為準。</p>`;
+  $("brief").hidden = false;
+}
+
+brief(DATA.summary);
 $("updated").textContent = DATA.updated;
 const count = (f) => DATA.items.filter(f).length;
 $("stats").innerHTML = [

@@ -1,9 +1,11 @@
 """每日蒐集都市計畫／都市更新／國土計畫相關的市府公告與新聞，產生 docs/index.html。
 
-只用 Python 標準函式庫，不需安裝套件。用法：python collect.py
+蒐集只用 Python 標準函式庫；「每日重點」摘要另需 anthropic 套件與 ANTHROPIC_API_KEY（見 summarize.py）。
+用法：python collect.py
 """
 import html
 import json
+import os
 import re
 import ssl
 import sys
@@ -206,7 +208,25 @@ def merge(new_items, cfg):
     return merged, today
 
 
-def render(items, today, errors, cfg):
+def daily_summary(items, today, errors):
+    """有設定 ANTHROPIC_API_KEY 時，用 Claude 整理今日新增項目；失敗時保留上一次的摘要。"""
+    store = ROOT / "data" / "summary.json"
+    previous = json.loads(store.read_text("utf-8")) if store.exists() else None
+    fresh = [it for it in items if it["first_seen"] == today]
+    if not os.environ.get("ANTHROPIC_API_KEY") or not fresh:
+        return previous
+    try:
+        from summarize import summarize
+        result = summarize(fresh, today)
+    except Exception as e:
+        errors.append(f"每日重點摘要：{type(e).__name__} {e}")
+        print(f"[失敗] 每日重點摘要: {e}", file=sys.stderr)
+        return previous
+    store.write_text(json.dumps(result, ensure_ascii=False, indent=1), "utf-8")
+    return result
+
+
+def render(items, today, errors, cfg, summary):
     template = (ROOT / "template.html").read_text("utf-8")
     payload = {
         "updated": datetime.now(TW).strftime("%Y-%m-%d %H:%M"),
@@ -215,6 +235,7 @@ def render(items, today, errors, cfg):
         "topics": list(cfg["topics"]),
         "items": items,
         "errors": errors,
+        "summary": summary,
     }
     data = json.dumps(payload, ensure_ascii=False).replace("</", "<\\/")
     out = ROOT / "docs" / "index.html"
@@ -227,7 +248,8 @@ def main():
     cfg = json.loads((ROOT / "config.json").read_text("utf-8"))
     new_items, errors = collect(cfg)
     items, today = merge(new_items, cfg)
-    out = render(items, today, errors, cfg)
+    summary = daily_summary(items, today, errors)
+    out = render(items, today, errors, cfg, summary)
     fresh = sum(1 for it in items if it["first_seen"] == today)
     print(f"共 {len(items)} 則（今日新增 {fresh} 則）→ {out}")
 
