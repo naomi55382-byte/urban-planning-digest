@@ -4,6 +4,10 @@ on:
   schedule:
     - cron: "0 22 * * *"   # UTC 22:00 = 臺灣時間每天早上 6:00
   workflow_dispatch:        # 也可以在 Actions 頁面手動執行
+    inputs:
+      backfill_days:
+        description: "另外回補過去幾天的新聞（0 = 不回補，最多 31）"
+        default: "0"
 
 permissions:
   contents: write
@@ -17,7 +21,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install anthropic
-      - run: python collect.py
+      - run: python collect.py --backfill "${{ inputs.backfill_days || 0 }}"
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}   # 未設定時略過「每日重點」摘要
       - name: 提交更新結果

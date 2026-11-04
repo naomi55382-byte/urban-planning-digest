@@ -22,6 +22,18 @@ python collect.py
 
 完成後用瀏覽器開啟 `docs/index.html`。
 
+### 回補過去的新聞
+
+每日蒐集只查最近 2～7 天的新聞。要補齊過去一段時間（例如剛新增縣市或關鍵字時）：
+
+```
+python collect.py --backfill 30
+```
+
+或在 GitHub 的 Actions → 每日蒐集 → Run workflow，把「backfill_days」填 30。
+回補會逐日查詢 Google 新聞（`when:30d` 一次最多 100 則，實測只涵蓋最近一週），約需 10 分鐘。
+回補的新聞依發布日歸檔，不會算進「今日新增」。資料保留 31 天。
+
 ## 來源
 
 | 縣市 | 來源 | 抓取方式 |

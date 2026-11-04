@@ -1,8 +1,10 @@
 """每日蒐集都市計畫／都市更新／國土計畫相關的市府公告與新聞，產生 docs/index.html。
 
 蒐集只用 Python 標準函式庫；「每日重點」摘要另需 anthropic 套件與 ANTHROPIC_API_KEY（見 summarize.py）。
-用法：python collect.py
+用法：python collect.py               每日蒐集
+      python collect.py --backfill 30  另外回補過去 30 天的新聞
 """
+import argparse
 import html
 import json
 import os
@@ -169,9 +171,28 @@ def norm(title):
     return re.sub(r"[\s「」『』（）()【】\[\]：:，,。、!！?？\-—]", "", title)
 
 
-def collect(cfg):
-    items, errors = [], []
+def backfill_sources(cfg, days):
+    """回補過去 days 天：把 Google 新聞查詢的 when:Nd 換成逐日的 after:/before: 區間。
+
+    when:30d 一次最多只回 100 則（實測只涵蓋最近一週），逐日查詢才能補齊整個月。
+    市府列表頁本來就會列出近期公告，不需要回補。
+    """
+    today = datetime.now(TW).date()
     for src in cfg["sources"]:
+        if src["type"] != "gnews":
+            continue
+        base = re.sub(r"\s*when:\S+", "", src["query"])
+        for n in range(days, 0, -1):
+            day = today - timedelta(days=n)
+            yield dict(src, query=f"{base} after:{day} before:{day + timedelta(days=1)}",
+                       backfill_day=str(day))
+
+
+def collect(cfg, sources):
+    items, errors = [], []
+    for src in sources:
+        if "backfill_day" in src:
+            time.sleep(1)  # 回補會連續發出數百個查詢，放慢速度避免被 Google 限流
         label = f'{src["name"]}（{src["city"]}）'
         try:
             got = list(PARSERS[src["type"]](src))
@@ -192,9 +213,12 @@ def collect(cfg):
                 kind=src["kind"],
                 source=it.pop("publisher", "") or src["name"],
             )
+            if "backfill_day" in src:  # 回補的項目依發布日歸檔，不算「今日新增」
+                it["first_seen"] = it["date"] or src["backfill_day"]
             items.append(it)
             kept += 1
-        print(f"[完成] {label}: 抓到 {len(got)} 則，保留 {kept} 則")
+        day = f' {src["backfill_day"]}' if "backfill_day" in src else ""
+        print(f"[完成] {label}{day}: 抓到 {len(got)} 則，保留 {kept} 則")
     return items, errors
 
 
@@ -207,7 +231,7 @@ def merge(new_items, cfg):
     for it in new_items:
         key = norm(it["title"])
         if key not in by_key:
-            it["first_seen"] = today
+            it.setdefault("first_seen", today)
             by_key[key] = it
     cutoff = (datetime.now(TW) - timedelta(days=cfg["keep_days"])).strftime("%Y-%m-%d")
     merged = [it for it in by_key.values() if it["first_seen"] >= cutoff]
@@ -254,8 +278,13 @@ def render(items, today, errors, cfg, summary):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--backfill", type=int, default=0, metavar="天數",
+                        help="另外回補過去 N 天的 Google 新聞（例如 --backfill 30）")
+    args = parser.parse_args()
     cfg = json.loads((ROOT / "config.json").read_text("utf-8"))
-    new_items, errors = collect(cfg)
+    sources = cfg["sources"] + list(backfill_sources(cfg, args.backfill))
+    new_items, errors = collect(cfg, sources)
     items, today = merge(new_items, cfg)
     summary = daily_summary(items, today, errors)
     out = render(items, today, errors, cfg, summary)
