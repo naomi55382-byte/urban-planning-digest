@@ -9,6 +9,7 @@ import os
 import re
 import ssl
 import sys
+import time
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -26,10 +27,16 @@ SSL_CTX = ssl.create_default_context()
 SSL_CTX.verify_flags &= ~getattr(ssl, "VERIFY_X509_STRICT", 0)
 
 
-def fetch(url):
+def fetch(url, retries=1):
     req = urllib.request.Request(url, headers={"User-Agent": UA})
-    with urllib.request.urlopen(req, timeout=30, context=SSL_CTX) as resp:
-        return resp.read().decode("utf-8", errors="replace")
+    try:
+        with urllib.request.urlopen(req, timeout=30, context=SSL_CTX) as resp:
+            return resp.read().decode("utf-8", errors="replace")
+    except OSError:  # 部分政府網站偶爾連線失敗，重試一次
+        if retries <= 0:
+            raise
+        time.sleep(5)
+        return fetch(url, retries - 1)
 
 
 def clean(text):
@@ -83,16 +90,18 @@ def src_gnews(src):
 
 
 def src_ccms(src):
-    """臺北市、苗栗縣等使用的 CCMS 網站「News.aspx」列表頁。"""
+    """臺北市、桃園市、臺南市、苗栗縣等使用的 CCMS 網站「News.aspx」列表頁。"""
     page = fetch(src["url"])
     base = src["url"]
     for row in page.split("<tr")[1:]:
-        a = re.search(r'<a[^>]+href="([^"]*News_Content[^"]*)"[^>]*title="([^"]+)"', row)
+        # 標題有的放在 title 屬性（臺北、苗栗），有的只在連結文字裡（桃園）
+        a = re.search(r'<a[^>]+href="([^"]*News_Content[^"]*)"[^>]*?(?:title="([^"]*)")?[^>]*>(.*?)</a>', row, re.S)
         if not a:
             continue
-        date = re.search(r'data-title="(?:發布日期|日期|公告日期)"[^>]*>\s*<span>([^<]+)', row)
+        title = clean(a.group(2)) or clean(a.group(3))
+        date = re.search(r'data-title="(?:發布日期|發佈時間|上版日期|日期|公告日期)"[^>]*>\s*<span>([^<]+)', row)
         yield {
-            "title": clean(a.group(2)),
+            "title": title,
             "link": urllib.parse.urljoin(base, html.unescape(a.group(1))),
             "date": parse_date(date.group(1) if date else ""),
         }
@@ -150,10 +159,10 @@ def topics_of(title, cfg):
 def city_of(title, default, cfg):
     if default != "全國":
         return default
-    for city, kws in cfg["cities"].items():
-        if any(k in title for k in kws):
-            return city
-    return "全國"
+    # 取標題中最早出現的縣市名，避免「新北市」被「北市」誤判為臺北市
+    hits = [(title.find(k), -len(k), city)
+            for city, kws in cfg["cities"].items() for k in kws if k in title]
+    return min(hits)[2] if hits else "全國"
 
 
 def norm(title):

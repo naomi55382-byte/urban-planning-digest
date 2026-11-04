@@ -8,7 +8,10 @@
   "cities": {
     "臺北市": ["臺北", "台北", "北市"],
     "新北市": ["新北"],
+    "桃園市": ["桃園", "桃市"],
     "臺中市": ["臺中", "台中", "中市"],
+    "臺南市": ["臺南", "台南", "南市"],
+    "高雄市": ["高雄", "高市"],
     "苗栗縣": ["苗栗"]
   },
   "sources": [
@@ -26,6 +29,20 @@
      "url": "https://www.miaoli.gov.tw/News.aspx?n=287&sms=9464", "filter": true},
     {"name": "苗栗縣都市計畫資訊網 公告訊息", "type": "miaoli", "city": "苗栗縣", "kind": "公告",
      "url": "https://urbanplan.miaoli.gov.tw/News/News", "filter": false},
+    {"name": "桃園市都市發展局 公展公告", "type": "ccms", "city": "桃園市", "kind": "公告",
+     "url": "https://urdb.tycg.gov.tw/News.aspx?n=10682&sms=14365", "filter": false},
+    {"name": "桃園市都市發展局 最新消息", "type": "ccms", "city": "桃園市", "kind": "公告",
+     "url": "https://urdb.tycg.gov.tw/News.aspx?n=10681&sms=14364", "filter": true},
+    {"name": "桃園市政府 (Google 新聞索引)", "type": "gnews", "city": "桃園市", "kind": "公告",
+     "query": "site:tycg.gov.tw (都市計畫 OR 都市更新 OR 都更 OR 國土計畫 OR 危老) when:7d", "filter": true},
+    {"name": "臺南市都市發展局 都計公告徵求意見", "type": "ccms", "city": "臺南市", "kind": "公告",
+     "url": "https://udweb.tainan.gov.tw/News.aspx?n=17101&sms=17870", "filter": false},
+    {"name": "臺南市都市發展局 最新消息", "type": "ccms", "city": "臺南市", "kind": "公告",
+     "url": "https://udweb.tainan.gov.tw/News.aspx?n=17090&sms=17874", "filter": true},
+    {"name": "高雄市政府 最新消息", "type": "rss", "city": "高雄市", "kind": "公告",
+     "url": "https://www.kcg.gov.tw/OpenData.aspx?SN=D33B55D537402BAA", "filter": true},
+    {"name": "高雄市政府 (Google 新聞索引)", "type": "gnews", "city": "高雄市", "kind": "公告",
+     "query": "site:kcg.gov.tw (都市計畫 OR 都市更新 OR 都更 OR 國土計畫 OR 危老) when:7d", "filter": true},
     {"name": "內政部國土管理署 (Google 新聞索引)", "type": "gnews", "city": "全國", "kind": "公告",
      "query": "site:nlma.gov.tw (國土計畫 OR 都市計畫 OR 都市更新) when:14d", "filter": true},
 
@@ -37,6 +54,12 @@
      "query": "(都市計畫 OR 都市更新 OR 都更 OR 危老 OR 國土計畫) (臺中 OR 台中) when:2d", "filter": true},
     {"name": "Google 新聞", "type": "gnews", "city": "苗栗縣", "kind": "新聞",
      "query": "(都市計畫 OR 都市更新 OR 都更 OR 危老 OR 國土計畫) 苗栗 when:7d", "filter": true},
+    {"name": "Google 新聞", "type": "gnews", "city": "桃園市", "kind": "新聞",
+     "query": "(都市計畫 OR 都市更新 OR 都更 OR 危老 OR 國土計畫) 桃園 when:2d", "filter": true},
+    {"name": "Google 新聞", "type": "gnews", "city": "臺南市", "kind": "新聞",
+     "query": "(都市計畫 OR 都市更新 OR 都更 OR 危老 OR 國土計畫) (臺南 OR 台南) when:2d", "filter": true},
+    {"name": "Google 新聞", "type": "gnews", "city": "高雄市", "kind": "新聞",
+     "query": "(都市計畫 OR 都市更新 OR 都更 OR 危老 OR 國土計畫) 高雄 when:2d", "filter": true},
     {"name": "Google 新聞", "type": "gnews", "city": "全國", "kind": "新聞",
      "query": "國土計畫 when:3d", "filter": true}
   ]

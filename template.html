@@ -70,7 +70,7 @@
 <div class="wrap">
   <header>
     <h1>都市計畫每日彙整</h1>
-    <div class="meta">臺北市・新北市・臺中市・苗栗縣｜都市計畫・都市更新・國土計畫｜更新於 <span id="updated"></span></div>
+    <div class="meta"><span id="scope"></span>｜更新於 <span id="updated"></span></div>
   </header>
   <section class="brief" id="brief" hidden></section>
   <div class="stats" id="stats"></div>
@@ -146,6 +146,7 @@ function brief(s) {
 
 brief(DATA.summary);
 $("updated").textContent = DATA.updated;
+$("scope").textContent = DATA.cities.filter(c => c !== "全國").join("・") + "｜" + DATA.topics.join("・");
 const count = (f) => DATA.items.filter(f).length;
 $("stats").innerHTML = [
   ["今日新增", count(it => it.first_seen === DATA.today)],
