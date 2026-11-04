@@ -37,6 +37,9 @@
   .chip { border: 1px solid transparent; background: var(--chip); color: var(--text); border-radius: 999px;
     padding: 3px 11px; font: inherit; font-size: 13px; cursor: pointer; }
   .chip[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  input[type=date] { padding: 4px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg);
+    color: var(--text); font: inherit; font-size: 13px; color-scheme: light dark; min-width: 0; }
+  .row .sep { color: var(--muted); font-size: 13px; }
   input[type=search] { flex: 1; min-width: 0; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line);
     background: var(--bg); color: var(--text); font: inherit; }
   h2.day { font-size: 13px; color: var(--muted); font-weight: 600; margin: 26px 0 8px; letter-spacing: .05em; }
@@ -78,6 +81,10 @@
     <div class="row"><label>縣市</label><span id="f-city" class="row"></span></div>
     <div class="row"><label>主題</label><span id="f-topic" class="row"></span></div>
     <div class="row"><label>期間</label><span id="f-period" class="row"></span></div>
+    <div class="row"><label>日期</label>
+      <input type="date" id="d-from" aria-label="起始日期"><span class="sep">至</span>
+      <input type="date" id="d-to" aria-label="結束日期">
+      <button class="chip" id="d-clear" hidden>清除</button></div>
     <div class="row"><label>類型</label><span id="f-kind" class="row"></span></div>
     <div class="row"><label>搜尋</label><input type="search" id="q" placeholder="關鍵字，例如：板橋、捷運、通盤檢討"></div>
   </div>
@@ -86,7 +93,7 @@
 </div>
 <script>
 const DATA = /*__DATA__*/null;
-const state = { city: "全部", topic: "全部", kind: "全部", period: "全部", q: "" };
+const state = { city: "全部", topic: "全部", kind: "全部", period: "全部", from: "", to: "", q: "" };
 const PERIODS = { "今天": 0, "近 7 天": 6, "近 30 天": 29 };
 const daysAgo = (n) => { const d = new Date(DATA.today); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
 const $ = (id) => document.getElementById(id);
@@ -98,22 +105,36 @@ function chips(el, key, values) {
     const b = document.createElement("button");
     b.className = "chip"; b.textContent = v;
     b.setAttribute("aria-pressed", state[key] === v);
-    b.onclick = () => { state[key] = v; chips(el, key, values); draw(); };
+    b.onclick = () => {
+      state[key] = v;
+      if (key === "period") setDates("", "");  // 期間與指定日期擇一
+      chips(el, key, values); draw();
+    };
     el.appendChild(b);
   }
 }
 
+function setDates(from, to) {
+  state.from = from; state.to = to;
+  $("d-from").value = from; $("d-to").value = to;
+  $("d-clear").hidden = !(from || to);
+}
+
 function draw() {
   const q = state.q.trim();
-  const since = state.period === "全部" ? "" : daysAgo(PERIODS[state.period]);
+  // 指定日期時依「發布日期」篩選與分組（沒有發布日期的用蒐集日期）；否則依蒐集日期
+  const custom = state.from || state.to;
+  const lo = state.from || state.to, hi = state.to || state.from;
+  const dayOf = (it) => custom ? (it.date || it.first_seen) : it.first_seen;
+  const since = custom || state.period === "全部" ? "" : daysAgo(PERIODS[state.period]);
   const rows = DATA.items.filter(it =>
     (state.city === "全部" || it.city === state.city) &&
     (state.topic === "全部" || it.topics.includes(state.topic)) &&
     (state.kind === "全部" || it.kind === state.kind) &&
-    it.first_seen >= since &&
+    (custom ? dayOf(it) >= lo && dayOf(it) <= hi : it.first_seen >= since) &&
     (!q || it.title.includes(q) || it.source.includes(q)));
   const groups = {};
-  for (const it of rows) (groups[it.first_seen] ||= []).push(it);
+  for (const it of rows) (groups[dayOf(it)] ||= []).push(it);
   const list = $("list");
   if (!rows.length) { list.innerHTML = '<p class="empty">沒有符合條件的項目</p>'; return; }
   list.innerHTML = Object.keys(groups).sort().reverse().map(day =>
@@ -161,6 +182,19 @@ chips($("f-city"), "city", DATA.cities);
 chips($("f-topic"), "topic", [...DATA.topics, "其他"]);
 chips($("f-kind"), "kind", ["公告", "新聞"]);
 chips($("f-period"), "period", Object.keys(PERIODS));
+for (const id of ["d-from", "d-to"]) {
+  $(id).min = DATA.items.reduce((m, it) => it.first_seen < m ? it.first_seen : m, DATA.today);
+  $(id).max = DATA.today;
+  $(id).onchange = () => {
+    let [from, to] = [$("d-from").value, $("d-to").value];
+    if (from && to && from > to) [from, to] = [to, from];
+    setDates(from, to);
+    state.period = "";  // 改用指定日期時，取消期間按鈕的選取
+    chips($("f-period"), "period", Object.keys(PERIODS));
+    draw();
+  };
+}
+$("d-clear").onclick = () => { setDates("", ""); state.period = "全部"; chips($("f-period"), "period", Object.keys(PERIODS)); draw(); };
 $("q").oninput = (e) => { state.q = e.target.value; draw(); };
 if (DATA.errors.length) {
   $("errors").hidden = false;
