@@ -6,7 +6,7 @@
 
 | 檔案 | 用途 |
 | --- | --- |
-| `config.json` | 來源網址、關鍵字、主題分類（新增來源或關鍵字只要改這裡） |
+| `config.json` | 來源網址、關鍵字、主題分類；`max_age_days` 只收幾天內刊登的項目（預設 7） |
 | `collect.py` | 抓取、篩選、去重，產生 `docs/index.html`（只用 Python 標準函式庫） |
 | `template.html` | 網頁版型 |
 | `summarize.py` | 用 Claude 把當日新增項目整理成「今日重點」（選用） |

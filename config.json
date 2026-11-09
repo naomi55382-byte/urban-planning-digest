@@ -1,5 +1,6 @@
 {
   "keep_days": 31,
+  "max_age_days": 7,
   "topics": {
     "都市更新": ["都市更新", "都更", "危老", "危險及老舊", "權利變換", "更新事業", "更新會", "老宅延壽", "整建維護"],
     "都市計畫": ["都市計畫", "細部計畫", "主要計畫", "通盤檢討", "土地使用分區", "公開展覽", "容積", "區段徵收", "市地重劃", "都委會", "都市設計審議"],
@@ -44,7 +45,7 @@
     {"name": "高雄市政府 (Google 新聞索引)", "type": "gnews", "city": "高雄市", "kind": "公告",
      "query": "site:kcg.gov.tw (都市計畫 OR 都市更新 OR 都更 OR 國土計畫 OR 危老) when:7d", "filter": true},
     {"name": "內政部國土管理署 (Google 新聞索引)", "type": "gnews", "city": "全國", "kind": "公告",
-     "query": "site:nlma.gov.tw (國土計畫 OR 都市計畫 OR 都市更新) when:14d", "filter": true},
+     "query": "site:nlma.gov.tw (國土計畫 OR 都市計畫 OR 都市更新) when:7d", "filter": true},
 
     {"name": "Google 新聞", "type": "gnews", "city": "臺北市", "kind": "新聞",
      "query": "(都市計畫 OR 都市更新 OR 都更 OR 危老 OR 國土計畫) (臺北市 OR 台北市) when:2d", "filter": true},

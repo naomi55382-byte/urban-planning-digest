@@ -15,7 +15,7 @@ import time
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from pathlib import Path
 
@@ -188,8 +188,17 @@ def backfill_sources(cfg, days):
                        backfill_day=str(day))
 
 
+def too_old(it, ref_day, cfg):
+    """發布日期早於 ref_day 前 max_age_days 天者視為舊資料；沒有發布日期的無法判斷，予以保留。"""
+    if not it["date"]:
+        return False
+    cutoff = date.fromisoformat(ref_day) - timedelta(days=cfg["max_age_days"])
+    return it["date"] < str(cutoff)
+
+
 def collect(cfg, sources):
     items, errors = [], []
+    today = datetime.now(TW).strftime("%Y-%m-%d")
     for src in sources:
         if "backfill_day" in src:
             time.sleep(1)  # 回補會連續發出數百個查詢，放慢速度避免被 Google 限流
@@ -200,9 +209,12 @@ def collect(cfg, sources):
             errors.append(f"{label}：{type(e).__name__} {e}")
             print(f"[失敗] {label}: {e}", file=sys.stderr)
             continue
-        kept = 0
+        kept = stale = 0
         for it in got:
             if not it["title"] or not it["link"]:
+                continue
+            if too_old(it, src.get("backfill_day", today), cfg):  # 只收一週內刊登的項目
+                stale += 1
                 continue
             topics = topics_of(it["title"], cfg)
             if src["filter"] and not topics:
@@ -218,7 +230,7 @@ def collect(cfg, sources):
             items.append(it)
             kept += 1
         day = f' {src["backfill_day"]}' if "backfill_day" in src else ""
-        print(f"[完成] {label}{day}: 抓到 {len(got)} 則，保留 {kept} 則")
+        print(f"[完成] {label}{day}: 抓到 {len(got)} 則，略過舊資料 {stale} 則，保留 {kept} 則")
     return items, errors
 
 
@@ -234,7 +246,9 @@ def merge(new_items, cfg):
             it.setdefault("first_seen", today)
             by_key[key] = it
     cutoff = (datetime.now(TW) - timedelta(days=cfg["keep_days"])).strftime("%Y-%m-%d")
-    merged = [it for it in by_key.values() if it["first_seen"] >= cutoff]
+    # 同時清掉先前已收進來、但蒐集時就已刊登超過一週的舊資料
+    merged = [it for it in by_key.values()
+              if it["first_seen"] >= cutoff and not too_old(it, it["first_seen"], cfg)]
     merged.sort(key=lambda it: (it["first_seen"], it["date"] or ""), reverse=True)
     store.parent.mkdir(exist_ok=True)
     store.write_text(json.dumps(merged, ensure_ascii=False, indent=1), "utf-8")
